@@ -1,11 +1,20 @@
 # Package Peek
 
+[![Latest release](https://img.shields.io/github/v/release/dmpotter1361/PackagePeek?label=download&sort=semver)](https://github.com/dmpotter1361/PackagePeek/releases/latest)
+
 A small Windows tray app that keeps an eye on your Amazon deliveries and pops up
 when a package is almost there. It lives in the system tray, checks your orders on
 a schedule, and shows what's processing, in transit, and arriving today — with
 desktop notifications, live carrier tracking links, and color-graded statuses.
 
 > Personal project. Not affiliated with, endorsed by, or sponsored by Amazon.
+
+### ⬇ Download
+
+**[Get the latest version](https://github.com/dmpotter1361/PackagePeek/releases/latest)** — download the
+`PackagePeek-x.y.z-x64.msi` from the latest release and run it. No setup or accounts; just install and sign in.
+(It's a personal beta and not code-signed yet, so Windows SmartScreen may warn — choose **More info → Run anyway**.)
+See [Install](#install) for details.
 
 ## Features
 

@@ -101,5 +101,11 @@ public sealed class HelpForm : Form
         Bullet("Closing the dashboard or the sign-in window doesn't quit the app - it keeps running in the tray.");
         Bullet("If Amazon ever signs you out, use the tray menu's \"Sign in to Amazon\" to sign back in.");
         Bullet("Quit any time from the tray menu.");
+
+        Heading("Updates & download");
+        Body("Package Peek is free and open source. Get the latest version, report a problem, " +
+             "or read the source any time at:");
+        Body("   https://github.com/dmpotter1361/PackagePeek/releases/latest");
+        Body("To update, just download and run the newest installer - it replaces the old version automatically.");
     }
 }
