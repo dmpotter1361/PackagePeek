@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>PackagePeek</AssemblyName>
+    <RootNamespace>AmazonTracker</RootNamespace>
+    <ApplicationIcon>appicon.ico</ApplicationIcon>
+    <!-- Friendly product name shown to the user -->
+    <Product>Package Peek</Product>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The icon generator and the test project live under this folder; keep both out of the app build. -->
+    <Compile Remove="tools\**\*.cs" />
+    <None Remove="tools\**\*" />
+    <EmbeddedResource Remove="tools\**\*" />
+    <Compile Remove="tests\**\*.cs" />
+    <None Remove="tests\**\*" />
+    <EmbeddedResource Remove="tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+    <PackageReference Include="System.Speech" Version="9.0.*" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The page-extraction script is shipped next to the exe and loaded at runtime,
+         so we can tune selectors without recompiling. -->
+    <None Update="Resources\extract.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appicon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

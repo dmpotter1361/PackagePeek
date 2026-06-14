@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Package Peek installer (WiX v4+ syntax).
+  - MajorUpgrade auto-removes any older version on install (no manual uninstall first).
+  - UpgradeCode must stay constant forever; bump Version each release to trigger upgrades.
+  - Files harvests the entire self-contained publish folder.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Package Peek"
+           Manufacturer="Michael Potter"
+           Version="0.1.2"
+           UpgradeCode="666C7D29-70E8-4F8A-A7C9-80451B2A94D8"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <!-- Replace any older install automatically; block downgrades with a friendly message. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Package Peek is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.PublishDir)\appicon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="ARPHELPLINK" Value="https://www.amazon.com" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Package Peek" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="Package Peek" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="AppShortcut" />
+    </Feature>
+
+    <!-- All published files (self-contained app + .NET runtime). -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**" />
+    </ComponentGroup>
+
+    <!-- Start-Menu shortcut, branded with the AppUserModelID so toasts show as Package Peek. -->
+    <Component Id="AppShortcut" Directory="ProgramMenuFolder" Guid="*">
+      <Shortcut Id="StartMenuShortcut"
+                Name="Package Peek"
+                Description="Amazon delivery tracker"
+                Target="[INSTALLFOLDER]PackagePeek.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon">
+        <ShortcutProperty Key="System.AppUserModel.ID" Value="MichaelPotter.PackagePeek" />
+      </Shortcut>
+      <RegistryValue Root="HKCU" Key="Software\PackagePeek" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+  </Package>
+</Wix>

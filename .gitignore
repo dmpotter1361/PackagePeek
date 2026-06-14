@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+publish/
+
+# WiX installer output
+*.wixpdb
+installer/*.msi
+
+# IDEs
+.vs/
+.idea/
+*.user
+*.suo
+
+# Throwaway preview (regenerate via tools/IconGen)
+appicon-preview.png
+
+# OS cruft
+Thumbs.db
+.DS_Store
