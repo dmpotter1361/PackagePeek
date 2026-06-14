@@ -20,6 +20,28 @@ internal static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0] == "--dashshot")
+        {
+            ApplicationConfiguration.Initialize();
+            var f = new DashboardForm();
+            f.StartPosition = FormStartPosition.Manual;
+            f.Location = new Point(-2000, -2000);
+            f.Show();
+            var sample = new List<OrderInfo>
+            {
+                new() { Title = "KOTAMU Wax Kit Pink Digital Handle Hard Wax Warmer", StatusText = "Arriving today", EtaText = "today", DeliveryWindow = "7 AM - 11 AM", Stage = DeliveryStage.OutForDelivery, OrderUrl = "https://www.amazon.com" },
+                new() { Title = "Seranova Micro Infusion System for Face", StatusText = "Arriving June 29", EtaText = "June 29", Stage = DeliveryStage.Shipped, EtaDate = new DateTime(2026, 6, 29), OrderUrl = "https://www.amazon.com" },
+                new() { Title = "The Tarot of Light Pocket Edition", StatusText = "Delivered today", EtaText = "today", Stage = DeliveryStage.Delivered, DeliveredToday = true, OrderUrl = "https://www.amazon.com" },
+            };
+            f.ShowOrders(sample, DateTime.Now);
+            Application.DoEvents();
+            using var b = new Bitmap(f.Width, f.Height);
+            f.DrawToBitmap(b, new Rectangle(0, 0, f.Width, f.Height));
+            b.Save(Path.Combine(AppSettings.ConfigDir, "dash-shot.png"));
+            f.Close();
+            return;
+        }
+
         if (args.Length > 0 && args[0] == "--settingsshot")
         {
             ApplicationConfiguration.Initialize();

@@ -43,7 +43,7 @@ public sealed class DashboardForm : Form
     public DashboardForm()
     {
         Text = "Package Peek - your Amazon deliveries";
-        Width = 760;
+        Width = 900;   // fits all columns without a horizontal scrollbar at default size
         Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(560, 360);
@@ -83,32 +83,43 @@ public sealed class DashboardForm : Form
         _list.Groups.Add(new ListViewGroup("transit", "On the way"));
         _list.Groups.Add(new ListViewGroup("processing", "Processing"));
         _list.Groups.Add(new ListViewGroup("delivered", "Delivered today"));
-        // Delivered-today is a collapsible peek, collapsed by default so it stays out of the way.
-        _list.Groups[3].CollapsedState = ListViewGroupCollapsedState.Collapsed;
+        // Always visible like the other groups — no collapse chevron to hunt for at the far right.
 
-        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 40 };
         _status.AutoSize = true;
-        _status.Location = new Point(10, 12);
+        _status.Anchor = AnchorStyles.Left;
         _status.Text = "Loading...";
-        _refreshBtn.Text = "Refresh now";
-        _refreshBtn.Width = 110;
-        _refreshBtn.Anchor = AnchorStyles.Right | AnchorStyles.Top;
-        _refreshBtn.Location = new Point(bottom.Width - 120, 6);
-        _refreshBtn.Click += (_, _) => RefreshRequested?.Invoke(this, EventArgs.Empty);
-        _settingsBtn.Text = "Settings";
-        _settingsBtn.Width = 90;
-        _settingsBtn.Anchor = AnchorStyles.Right | AnchorStyles.Top;
-        _settingsBtn.Location = new Point(bottom.Width - 216, 6);
-        _settingsBtn.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        _helpBtn.Text = "Help";
-        _helpBtn.Width = 80;
-        _helpBtn.Anchor = AnchorStyles.Right | AnchorStyles.Top;
-        _helpBtn.Location = new Point(bottom.Width - 302, 6);
-        _helpBtn.Click += (_, _) => ShowHelpRequested?.Invoke(this, EventArgs.Empty);
-        bottom.Controls.Add(_status);
-        bottom.Controls.Add(_helpBtn);
-        bottom.Controls.Add(_settingsBtn);
-        bottom.Controls.Add(_refreshBtn);
+
+        ConfigureBarButton(_helpBtn, "Help", (_, _) => ShowHelpRequested?.Invoke(this, EventArgs.Empty));
+        ConfigureBarButton(_settingsBtn, "Settings", (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty));
+        ConfigureBarButton(_refreshBtn, "Refresh now", (_, _) => RefreshRequested?.Invoke(this, EventArgs.Empty));
+
+        // Buttons auto-size to their text (survives any font/DPI) and sit on the right.
+        var btns = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Margin = new Padding(0),
+            Anchor = AnchorStyles.Right
+        };
+        btns.Controls.Add(_helpBtn);
+        btns.Controls.Add(_settingsBtn);
+        btns.Controls.Add(_refreshBtn);
+
+        var bottom = new TableLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
+            Padding = new Padding(8, 4, 8, 4)
+        };
+        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        bottom.Controls.Add(_status, 0, 0);
+        bottom.Controls.Add(btns, 1, 0);
 
         var hint = new Label
         {
@@ -200,6 +211,16 @@ public sealed class DashboardForm : Form
     }
 
     public void SetStatus(string message) => _status.Text = message;
+
+    private void ConfigureBarButton(Button b, string text, EventHandler onClick)
+    {
+        b.Text = text;
+        b.AutoSize = true;
+        b.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        b.Padding = new Padding(8, 3, 8, 3);
+        b.Margin = new Padding(4, 3, 0, 3);
+        b.Click += onClick;
+    }
 
     private static string EtaWithWindow(OrderInfo o)
     {
