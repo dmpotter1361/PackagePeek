@@ -6,7 +6,7 @@
     Usage:  pwsh ./build.ps1 [-Version 0.1.2]
     Requires: .NET SDK, and WiX v5  (dotnet tool install --global wix --version 5.0.2)
 #>
-param([string]$Version = "0.1.2")
+param([string]$Version = "0.1.3")
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
@@ -20,6 +20,6 @@ if (Test-Path $pub) { Remove-Item $pub -Recurse -Force }
 dotnet publish $proj -c Release -r win-x64 --self-contained true -o $pub
 
 Write-Host "Building MSI ($Version)..." -ForegroundColor Cyan
-wix build $wxs -d "PublishDir=$pub" -arch x64 -o $msi
+wix build $wxs -d "PublishDir=$pub" -d "Version=$Version" -arch x64 -o $msi
 
 Write-Host "Done: $msi" -ForegroundColor Green

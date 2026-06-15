@@ -3,12 +3,14 @@
   Package Peek installer (WiX v4+ syntax).
   - MajorUpgrade auto-removes any older version on install (no manual uninstall first).
   - UpgradeCode must stay constant forever; bump Version each release to trigger upgrades.
+  - Version comes from build.ps1 (-d Version=...); the default below is just a fallback.
   - Files harvests the entire self-contained publish folder.
 -->
+<?ifndef Version ?><?define Version = "0.1.3" ?><?endif?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="Package Peek"
            Manufacturer="Michael Potter"
-           Version="0.1.2"
+           Version="$(var.Version)"
            UpgradeCode="666C7D29-70E8-4F8A-A7C9-80451B2A94D8"
            Scope="perMachine"
            Compressed="yes">
