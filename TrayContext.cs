@@ -277,10 +277,11 @@ public sealed class TrayContext : ApplicationContext
         if (!force && _settings.IsQuietNow()) return;
 
         if (!TryShowToast(title, message, o.ImageUrl, o.OrderUrl, BuildTrackUrl(o)))
-        {
             ShowBalloon(title, message, o.OrderUrl);
-            PlayChime();   // toasts play their own sound; only chime on the balloon fallback
-        }
+
+        // The toast is muted (see TryShowToast), so we always play the user's chosen
+        // sound here — exactly one sound, never a Windows + custom double.
+        PlayChime();
         Speak(title, message);
     }
 
@@ -324,6 +325,10 @@ public sealed class TrayContext : ApplicationContext
         try
         {
             var b = new ToastContentBuilder().AddText(title).AddText(message);
+
+            // Mute the toast's own audio; we play the user's chosen sound ourselves so
+            // there's never a double (Windows sound + custom sound).
+            b.AddAudio(new Uri("ms-winsoundevent:Notification.Default"), silent: true);
 
             var localImg = TryCacheImage(imageUrl);
             if (localImg is not null) b.AddAppLogoOverride(new Uri(localImg));
