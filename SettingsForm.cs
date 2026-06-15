@@ -21,6 +21,9 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _speak = new() { Text = "Read the alert aloud (text-to-speech)", AutoSize = true };
     private readonly CheckBox _startup = new() { Text = "Start automatically when Windows starts", AutoSize = true };
     private readonly Button _testBtn = new() { Text = "Send test popup", AutoSize = true, Padding = new Padding(6, 2, 6, 2) };
+    private readonly ComboBox _soundCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 150 };
+    private readonly Button _previewBtn = new() { Text = "Preview", AutoSize = true, Padding = new Padding(6, 2, 6, 2) };
+    private readonly Button _browseBtn = new() { Text = "Custom...", AutoSize = true, Padding = new Padding(6, 2, 6, 2) };
 
     /// <summary>Raised when the user clicks "Send test popup" (settings already committed).</summary>
     public event EventHandler? TestNotificationRequested;
@@ -63,6 +66,7 @@ public sealed class SettingsForm : Form
 
         AddSpan(grid, ref row, Bold("Sound"));
         AddSpan(grid, ref row, _playSound);
+        AddPair(grid, ref row, L("Notification sound:"), Inline(_soundCombo, _previewBtn, _browseBtn));
         AddSpan(grid, ref row, _speak);
 
         AddSpan(grid, ref row, _startup);
@@ -88,8 +92,44 @@ public sealed class SettingsForm : Form
         _notifyStops.CheckedChanged += (_, _) => _stops.Enabled = _notifyStops.Checked;
         _quiet.CheckedChanged += (_, _) => { _quietStart.Enabled = _quietEnd.Enabled = _quiet.Checked; };
 
+        foreach (var o in Sounds.BuiltIns()) _soundCombo.Items.Add(o);
+        _previewBtn.Click += (_, _) => Sounds.Play((_soundCombo.SelectedItem as Sounds.SoundOption)?.Value);
+        _browseBtn.Click += (_, _) => BrowseCustomSound();
+        _playSound.CheckedChanged += (_, _) => UpdateSoundEnabled();
+
         LoadValues();
     }
+
+    private void BrowseCustomSound()
+    {
+        using var dlg = new OpenFileDialog
+        {
+            Title = "Choose a notification sound",
+            Filter = "Sound files (*.wav;*.mp3)|*.wav;*.mp3|All files (*.*)|*.*"
+        };
+        if (dlg.ShowDialog(this) == DialogResult.OK) SelectCustom(dlg.FileName);
+    }
+
+    private void SelectCustom(string path)
+    {
+        for (int i = _soundCombo.Items.Count - 1; i >= 0; i--)
+            if (_soundCombo.Items[i] is Sounds.SoundOption so && so.Name.StartsWith("Custom:"))
+                _soundCombo.Items.RemoveAt(i);
+        var item = new Sounds.SoundOption("Custom: " + Path.GetFileName(path), path);
+        _soundCombo.Items.Add(item);
+        _soundCombo.SelectedItem = item;
+    }
+
+    private void SelectSound(string value)
+    {
+        foreach (var it in _soundCombo.Items)
+            if (it is Sounds.SoundOption so && so.Value == value) { _soundCombo.SelectedItem = it; return; }
+        if (!string.IsNullOrEmpty(value) && value != Sounds.Default && File.Exists(value)) SelectCustom(value);
+        else if (_soundCombo.Items.Count > 0) _soundCombo.SelectedIndex = 0; // Windows default
+    }
+
+    private void UpdateSoundEnabled() =>
+        _soundCombo.Enabled = _previewBtn.Enabled = _browseBtn.Enabled = _playSound.Checked;
 
     // --- layout helpers -------------------------------------------------------
 
@@ -147,6 +187,8 @@ public sealed class SettingsForm : Form
         _quietEnd.Value = Math.Clamp(_s.QuietEndHour, 0, 23);
         _quietStart.Enabled = _quietEnd.Enabled = _quiet.Checked;
         _playSound.Checked = _s.PlaySound;
+        SelectSound(_s.SoundChoice);
+        UpdateSoundEnabled();
         _speak.Checked = _s.SpeakAloud;
         _startup.Checked = _s.LaunchAtStartup;
     }
@@ -162,6 +204,7 @@ public sealed class SettingsForm : Form
         _s.QuietStartHour = (int)_quietStart.Value;
         _s.QuietEndHour = (int)_quietEnd.Value;
         _s.PlaySound = _playSound.Checked;
+        _s.SoundChoice = (_soundCombo.SelectedItem as Sounds.SoundOption)?.Value ?? Sounds.Default;
         _s.SpeakAloud = _speak.Checked;
         _s.LaunchAtStartup = _startup.Checked;
         _s.Save();

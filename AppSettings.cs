@@ -40,6 +40,9 @@ public sealed class AppSettings
     /// <summary>Play a chime with each popup.</summary>
     public bool PlaySound { get; set; } = true;
 
+    /// <summary>Which sound to play: "default" (Windows chime), a Windows\Media path, or a custom file path.</summary>
+    public string SoundChoice { get; set; } = "default";
+
     /// <summary>Read the alert aloud (text-to-speech).</summary>
     public bool SpeakAloud { get; set; } = false;
 

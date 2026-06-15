@@ -304,7 +304,7 @@ public sealed class TrayContext : ApplicationContext
     private void PlayChime()
     {
         if (_settings.PlaySound)
-            try { System.Media.SystemSounds.Asterisk.Play(); } catch { }
+            Sounds.Play(_settings.SoundChoice);
     }
 
     private void Speak(string title, string message)
