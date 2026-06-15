@@ -305,7 +305,7 @@ public sealed class TrayContext : ApplicationContext
     private void PlayChime()
     {
         if (_settings.PlaySound)
-            Sounds.Play(_settings.SoundChoice);
+            Sounds.Play(_settings.SoundChoice, _settings.SoundVolume);
     }
 
     private void Speak(string title, string message)

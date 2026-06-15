@@ -24,6 +24,7 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _soundCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 150 };
     private readonly Button _previewBtn = new() { Text = "Preview", AutoSize = true, Padding = new Padding(6, 2, 6, 2) };
     private readonly Button _browseBtn = new() { Text = "Custom...", AutoSize = true, Padding = new Padding(6, 2, 6, 2) };
+    private readonly TrackBar _volume = new() { Minimum = 0, Maximum = 100, TickFrequency = 25, SmallChange = 5, LargeChange = 10, AutoSize = false, Width = 180, Height = 32 };
 
     /// <summary>Raised when the user clicks "Send test popup" (settings already committed).</summary>
     public event EventHandler? TestNotificationRequested;
@@ -67,6 +68,7 @@ public sealed class SettingsForm : Form
         AddSpan(grid, ref row, Bold("Sound"));
         AddSpan(grid, ref row, _playSound);
         AddPair(grid, ref row, L("Notification sound:"), Inline(_soundCombo, _previewBtn, _browseBtn));
+        AddPair(grid, ref row, L("Volume:"), _volume);
         AddSpan(grid, ref row, _speak);
 
         AddSpan(grid, ref row, _startup);
@@ -93,8 +95,10 @@ public sealed class SettingsForm : Form
         _quiet.CheckedChanged += (_, _) => { _quietStart.Enabled = _quietEnd.Enabled = _quiet.Checked; };
 
         foreach (var o in Sounds.BuiltIns()) _soundCombo.Items.Add(o);
-        _previewBtn.Click += (_, _) => Sounds.Play((_soundCombo.SelectedItem as Sounds.SoundOption)?.Value);
+        void Preview() => Sounds.Play((_soundCombo.SelectedItem as Sounds.SoundOption)?.Value, (int)_volume.Value);
+        _previewBtn.Click += (_, _) => Preview();
         _browseBtn.Click += (_, _) => BrowseCustomSound();
+        _volume.MouseUp += (_, _) => Preview();   // audition the level as you adjust
         _playSound.CheckedChanged += (_, _) => UpdateSoundEnabled();
 
         LoadValues();
@@ -129,7 +133,7 @@ public sealed class SettingsForm : Form
     }
 
     private void UpdateSoundEnabled() =>
-        _soundCombo.Enabled = _previewBtn.Enabled = _browseBtn.Enabled = _playSound.Checked;
+        _soundCombo.Enabled = _previewBtn.Enabled = _browseBtn.Enabled = _volume.Enabled = _playSound.Checked;
 
     // --- layout helpers -------------------------------------------------------
 
@@ -188,6 +192,7 @@ public sealed class SettingsForm : Form
         _quietStart.Enabled = _quietEnd.Enabled = _quiet.Checked;
         _playSound.Checked = _s.PlaySound;
         SelectSound(_s.SoundChoice);
+        _volume.Value = Math.Clamp(_s.SoundVolume, 0, 100);
         UpdateSoundEnabled();
         _speak.Checked = _s.SpeakAloud;
         _startup.Checked = _s.LaunchAtStartup;
@@ -205,6 +210,7 @@ public sealed class SettingsForm : Form
         _s.QuietEndHour = (int)_quietEnd.Value;
         _s.PlaySound = _playSound.Checked;
         _s.SoundChoice = (_soundCombo.SelectedItem as Sounds.SoundOption)?.Value ?? Sounds.Default;
+        _s.SoundVolume = _volume.Value;
         _s.SpeakAloud = _speak.Checked;
         _s.LaunchAtStartup = _startup.Checked;
         _s.Save();

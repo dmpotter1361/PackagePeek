@@ -49,8 +49,14 @@ public static class Sounds
     [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
     private static extern int mciSendString(string command, StringBuilder? returnValue, int returnLength, IntPtr callback);
 
-    /// <summary>Play the chosen sound once (async). Falls back to the system chime on any problem.</summary>
-    public static void Play(string? choice)
+    private static SoundPlayer? _player; // kept alive so async playback isn't cut off
+
+    /// <summary>
+    /// Play the chosen sound once (async) at the given volume (0-100). Falls back to the
+    /// system chime on any problem. Volume only applies to file-based sounds; "Windows
+    /// default" plays at the system level.
+    /// </summary>
+    public static void Play(string? choice, int volumePercent = 100)
     {
         try
         {
@@ -60,13 +66,27 @@ public static class Sounds
                 return;
             }
 
-            // Reopen each time so rapid previews don't stack on the same alias.
+            // WAV: normalize (so quiet sounds like ding/chimes come up to a usable level)
+            // then scale by the volume, and play. This is the path for all built-ins.
+            if (choice.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+                && WavGain.TryNormalizeAndScale(choice, volumePercent, out var pcm))
+            {
+                var tmp = Path.Combine(Path.GetTempPath(), "pp-sound.wav");
+                File.WriteAllBytes(tmp, pcm);
+                _player?.Dispose();
+                _player = new SoundPlayer(tmp);
+                _player.Play();
+                return;
+            }
+
+            // Non-WAV (e.g. a custom .mp3): MCI can only attenuate, but still honors volume.
             mciSendString("close ppsound", null, 0, IntPtr.Zero);
             if (mciSendString($"open \"{choice}\" alias ppsound", null, 0, IntPtr.Zero) != 0)
             {
                 SystemSounds.Asterisk.Play();
                 return;
             }
+            mciSendString($"setaudio ppsound volume to {Math.Clamp(volumePercent, 0, 100) * 10}", null, 0, IntPtr.Zero);
             mciSendString("play ppsound", null, 0, IntPtr.Zero);
         }
         catch

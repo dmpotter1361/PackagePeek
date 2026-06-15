@@ -43,6 +43,9 @@ public sealed class AppSettings
     /// <summary>Which sound to play: "default" (Windows chime), a Windows\Media path, or a custom file path.</summary>
     public string SoundChoice { get; set; } = "default";
 
+    /// <summary>Notification sound volume, 0-100 (applies to the chosen sound file; "Windows default" uses system volume).</summary>
+    public int SoundVolume { get; set; } = 80;
+
     /// <summary>Read the alert aloud (text-to-speech).</summary>
     public bool SpeakAloud { get; set; } = false;
 

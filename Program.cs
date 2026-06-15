@@ -20,6 +20,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0] == "--notifytest")
+        {
+            RunNotifyTest();
+            return;
+        }
+
         if (args.Length > 0 && args[0] == "--dashshot")
         {
             ApplicationConfiguration.Initialize();
@@ -70,6 +76,35 @@ internal static class Program
         Application.Run(new TrayContext(settings));
 
         GC.KeepAlive(_single);
+    }
+
+    /// <summary>
+    /// Mirrors a real alert: a MUTED toast (with buttons) plus a separately-played sound,
+    /// so you can confirm there's exactly one sound and no Windows double-ding. Uses the
+    /// configured sound if one is set, otherwise demos a ringtone.
+    /// </summary>
+    private static void RunNotifyTest()
+    {
+        try
+        {
+            new ToastContentBuilder()
+                .AddText("Out for delivery")
+                .AddText("Teamoy Cloth Panty Liners\nArriving today, by 3 PM")
+                .AddAudio(new Uri("ms-winsoundevent:Notification.Default"), silent: true) // muted; we play our own
+                .AddButton(new ToastButton().SetContent("Track").SetProtocolActivation(new Uri("https://www.amazon.com")))
+                .AddButton(new ToastButton().SetContent("View order").SetProtocolActivation(new Uri("https://www.amazon.com")))
+                .Show();
+        }
+        catch { /* fall through to at least play the sound */ }
+
+        var settings = AppSettings.Load();
+        var media = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Media");
+        var sound = settings is { PlaySound: true } && settings.SoundChoice != Sounds.Default && File.Exists(settings.SoundChoice)
+            ? settings.SoundChoice
+            : Path.Combine(media, "Ring05.wav"); // demo ringtone when nothing custom is set
+        Sounds.Play(sound);
+
+        Thread.Sleep(4000); // let the toast surface and the sound finish before exit
     }
 
     /// <summary>Fires a single toast and records whether the API succeeded, for reliability testing.</summary>
