@@ -6,7 +6,7 @@
     Usage:  pwsh ./build.ps1 [-Version 0.1.2]
     Requires: .NET SDK, and WiX v5  (dotnet tool install --global wix --version 5.0.2)
 #>
-param([string]$Version = "0.1.3")
+param([string]$Version = "0.1.4")
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
