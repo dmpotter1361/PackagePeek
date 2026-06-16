@@ -73,8 +73,9 @@ public sealed class HelpForm : Form
         Bullet("Each row shows the item, its status, the estimated arrival (and delivery time window when Amazon gives one).");
         Bullet("Double-click a row to open that order on Amazon. Double-click the Tracking cell to open live carrier tracking.");
         Bullet("Double-click a product picture to see it bigger.");
-        Bullet("Right-click a row to give it a friendly name (e.g. rename a cryptic listing to \"Mom's birthday gift\").");
+        Bullet("Right-click a row to give it a friendly name (e.g. rename a cryptic listing to \"Mom's birthday gift\"), or to Hide a package you don't care about. (Tray menu -> \"Unhide all packages\" brings them back.)");
         Bullet("Click a column header to sort by it.");
+        Bullet("Amber items are running late or have been pushed back (\"Now arriving...\"); red means 3+ days past due.");
 
         Heading("Notifications");
         Bullet("A popup appears when a package goes out for delivery, when it's within a few stops, and when it's delivered.");

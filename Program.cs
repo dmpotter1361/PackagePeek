@@ -29,7 +29,7 @@ internal static class Program
         if (args.Length > 0 && args[0] == "--dashshot")
         {
             ApplicationConfiguration.Initialize();
-            var f = new DashboardForm();
+            var f = new DashboardForm(new HiddenStore());
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(-2000, -2000);
             f.Show();

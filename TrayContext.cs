@@ -16,6 +16,7 @@ public sealed class TrayContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _timer;
     private readonly BrowserHost _browser;
     private readonly DashboardForm _dashboard;
+    private readonly HiddenStore _hidden = new();
 
     private readonly Icon _appIcon;
     private readonly Bitmap _baseBitmap;
@@ -39,7 +40,7 @@ public sealed class TrayContext : ApplicationContext
         _browser.SignInRequired += async (_, _) => await PromptSignInAsync();
         _browser.LoginWindowClosed += async (_, _) => await RefreshAsync(userInitiated: true);
 
-        _dashboard = new DashboardForm();
+        _dashboard = new DashboardForm(_hidden);
         _dashboard.RefreshRequested += async (_, _) => await RefreshAsync(userInitiated: true);
         _dashboard.SettingsRequested += (_, _) => ShowSettings();
         _dashboard.ShowHelpRequested += (_, _) => ShowHelp();
@@ -144,6 +145,7 @@ public sealed class TrayContext : ApplicationContext
         menu.Items.Add("Sign in to Amazon...", null, async (_, _) => await PromptSignInAsync());
         menu.Items.Add("Add today's arrivals to calendar", null, (_, _) => ExportTodayToCalendar());
         menu.Items.Add("Settings...", null, (_, _) => ShowSettings());
+        menu.Items.Add("Unhide all packages", null, async (_, _) => { _hidden.Clear(); await RefreshAsync(userInitiated: true); });
         menu.Items.Add("Help", null, (_, _) => ShowHelp());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Quit", null, (_, _) => Quit());
@@ -208,11 +210,12 @@ public sealed class TrayContext : ApplicationContext
                 return;
             }
 
-            // Drop canceled orders (never arriving) and anything delivered before today
-            // (assumed already picked up).
+            // Drop canceled orders (never arriving), anything delivered before today
+            // (assumed already picked up), and packages the user has hidden.
             orders = orders
                 .Where(o => o.Stage != DeliveryStage.Canceled)
                 .Where(o => o.Stage != DeliveryStage.Delivered || o.DeliveredToday)
+                .Where(o => !_hidden.IsHidden(o.ShipmentKey))
                 .ToList();
 
             _lastOrders = orders;

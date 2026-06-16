@@ -18,6 +18,7 @@ public sealed class DashboardForm : Form
     private readonly ImageList _thumbs = new();
     private readonly HashSet<string> _loadedKeys = new();
     private readonly NicknameStore _nicknames = new();
+    private readonly HiddenStore _hidden;
     private readonly Dictionary<string, Image> _fullImages = new();
     private int _sortCol = -1;
     private SortOrder _sortOrder = SortOrder.Ascending;
@@ -40,8 +41,9 @@ public sealed class DashboardForm : Form
     /// (Named to avoid colliding with the built-in Control.HelpRequested event.)</summary>
     public event EventHandler? ShowHelpRequested;
 
-    public DashboardForm()
+    public DashboardForm(HiddenStore hidden)
     {
+        _hidden = hidden;
         Text = "Package Peek - your Amazon deliveries";
         Width = 900;   // fits all columns without a horizontal scrollbar at default size
         Height = 560;
@@ -70,6 +72,8 @@ public sealed class DashboardForm : Form
         var ctx = new ContextMenuStrip();
         ctx.Items.Add("Rename...", null, (_, _) => RenameSelected());
         ctx.Items.Add("Clear name", null, (_, _) => ClearNameSelected());
+        ctx.Items.Add(new ToolStripSeparator());
+        ctx.Items.Add("Hide this package", null, (_, _) => HideSelected());
         _list.ContextMenuStrip = ctx;
         _list.MouseDown += (_, e) =>
         {
@@ -151,9 +155,12 @@ public sealed class DashboardForm : Form
 
     public void ShowOrders(IReadOnlyList<OrderInfo> orders, DateTime lastUpdated)
     {
+        // Drop packages the user has hidden.
+        var visible = orders.Where(o => !_hidden.IsHidden(o.ShipmentKey)).ToList();
+
         _list.BeginUpdate();
         _list.Items.Clear();
-        foreach (var o in orders)
+        foreach (var o in visible)
         {
             var display = _nicknames.Get(o.OrderId) ?? o.Title;
             var item = new ListViewItem(display) { Tag = o, Group = GroupFor(o.Stage) };
@@ -187,15 +194,15 @@ public sealed class DashboardForm : Form
         }
         _list.EndUpdate();
 
-        _ = LoadThumbnailsAsync(orders);
+        _ = LoadThumbnailsAsync(visible);
 
-        _status.Text = orders.Count == 0
+        _status.Text = visible.Count == 0
             ? $"No active orders found.  Updated {lastUpdated:t}."
-            : $"{orders.Count} package(s).  Updated {lastUpdated:t}.";
+            : $"{visible.Count} package(s).  Updated {lastUpdated:t}.";
 
         // Banner: how many are landing today.
         var today = DateTime.Now.Date;
-        int arrivingToday = orders.Count(o =>
+        int arrivingToday = visible.Count(o =>
             o.Stage is DeliveryStage.OutForDelivery
             || (o.Stage != DeliveryStage.Delivered && o.Stage != DeliveryStage.Canceled
                 && o.EtaDate is DateTime d && d.Date == today));
@@ -277,6 +284,11 @@ public sealed class DashboardForm : Form
     /// <summary>Color + weight for an order's status/ETA based on its stage and how overdue it is.</summary>
     private static (Color color, bool bold) StyleFor(OrderInfo o)
     {
+        // Delayed (Amazon pushed the estimate back, "Now arriving …") shows amber so it
+        // stands out from on-track packages.
+        bool active = o.Stage is DeliveryStage.Processing or DeliveryStage.Shipped or DeliveryStage.OutForDelivery;
+        if (o.Delayed && active) return (Color.FromArgb(214, 128, 0), true);
+
         // Overdue takes priority (red at 3+ days late, amber at 1–2). A future ETA is
         // never overdue; only known-in-transit items qualify. See OrderLogic.Overdue.
         switch (OrderLogic.Overdue(o.Stage, o.EtaDate, DateTime.Now))
@@ -341,6 +353,13 @@ public sealed class DashboardForm : Form
         if (_list.SelectedItems.Count == 0 || _list.SelectedItems[0].Tag is not OrderInfo o) return;
         _nicknames.Set(o.OrderId, null);
         _list.SelectedItems[0].Text = o.Title;
+    }
+
+    private void HideSelected()
+    {
+        if (_list.SelectedItems.Count == 0 || _list.SelectedItems[0].Tag is not OrderInfo o) return;
+        _hidden.Hide(o.ShipmentKey);
+        _list.Items.Remove(_list.SelectedItems[0]);
     }
 
     private void OnColumnClick(object? sender, ColumnClickEventArgs e)

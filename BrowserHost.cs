@@ -163,7 +163,8 @@ public sealed class BrowserHost : Form
             var rows = orders.Select(o => new
             {
                 o.Title, o.StatusText, stage = o.Stage.ToString(),
-                o.EtaText, o.StopsAway, o.OrderId, hasImage = !string.IsNullOrEmpty(o.ImageUrl)
+                o.EtaText, o.StopsAway, o.Delayed, o.OrderId, hasImage = !string.IsNullOrEmpty(o.ImageUrl),
+                o.RawText
             });
             File.WriteAllText(path, JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }));
         }

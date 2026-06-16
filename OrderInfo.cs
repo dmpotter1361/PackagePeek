@@ -53,6 +53,14 @@ public sealed class OrderInfo
     [JsonPropertyName("carrier")]
     public string Carrier { get; set; } = "";
 
+    /// <summary>True when Amazon shows a pushed-back estimate ("Now arriving …") — a delayed shipment.</summary>
+    [JsonPropertyName("delayed")]
+    public bool Delayed { get; set; }
+
+    /// <summary>Raw (script-stripped) card text — diagnostics only, written to the debug dump.</summary>
+    [JsonPropertyName("rawText")]
+    public string RawText { get; set; } = "";
+
     /// <summary>Coarse bucket derived from <see cref="StatusText"/>; set during normalization.</summary>
     [JsonIgnore]
     public DeliveryStage Stage { get; set; } = DeliveryStage.Unknown;

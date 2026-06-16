@@ -156,9 +156,72 @@
     return t || "(item)";
   }
 
+  const STATUS_SEL = ".yohtmlc-shipment-status-primaryText, [class*='shipment-status-primaryText']";
+
+  // "Now arriving <future date>" = Amazon pushed the estimate back (delayed/stuck).
+  // "Now arriving today/tomorrow" is imminent, not delayed.
+  function isDelayed(status) {
+    return /\bnow arriving\b/i.test(status) && !/\b(today|tomorrow)\b/i.test(status);
+  }
+
+  // An order card can hold several shipments (e.g. one item delivered, another delayed).
+  // When there are 2+ status nodes, split into one shipment each, pairing every status
+  // with the next product item that follows it in document order. ("Now arriving" marks
+  // a pushed-back / delayed shipment.) Single-shipment cards return [] -> caller uses the
+  // existing whole-card logic.
+  function splitShipments(card) {
+    const nodes = card.querySelectorAll(STATUS_SEL);
+    if (nodes.length <= 1) return [];
+
+    const ships = [];
+    let cur = null;
+    const all = card.querySelectorAll("*");
+    for (let i = 0; i < all.length; i++) {
+      const el = all[i];
+      if (el.matches(STATUS_SEL)) {
+        const s = cleanText(el);
+        if (!s) continue;
+        cur = { status: s, title: "", img: "", delayed: isDelayed(s) };
+        ships.push(cur);
+        continue;
+      }
+      if (!cur) continue;
+      if (!cur.title && el.matches && el.matches("a[href*='/dp/'], a[href*='/gp/product/'], a[href*='/product/']")) {
+        let t = textOf(el);
+        if (t) cur.title = t.length > 90 ? t.slice(0, 87) + "…" : t;
+      }
+      if (!cur.img && el.tagName === "IMG") {
+        let src = el.getAttribute("src") || "";
+        if (src.startsWith("//")) src = "https:" + src;
+        if (src.startsWith("http") && src.indexOf("media-amazon") >= 0) cur.img = src;
+      }
+    }
+    return ships.filter((s) => s.status);
+  }
+
   const results = [];
   const seenKeys = new Set();
   const cards = findCards();
+
+  function addRow(orderId, orderUrl, cardText, statusText, title, imageUrl, delayed) {
+    const key = orderId + "|" + title;
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    results.push({
+      orderId: orderId,
+      title: title,
+      statusText: statusText,
+      etaText: etaFrom(statusText),
+      stopsAway: stopsFrom(cardText),
+      deliveryWindow: windowFrom(statusText) || windowFrom(cardText),
+      orderUrl: orderUrl,
+      imageUrl: imageUrl,
+      trackingId: trackingFrom(cardText),
+      carrier: carrierFrom(cardText),
+      delayed: !!delayed,
+      rawText: cardText.slice(0, 700), // diagnostics only (written to the debug-gated dump)
+    });
+  }
 
   cards.forEach((card) => {
     const link = card.querySelector("a[href*='order-details'], a[href*='orderID=']");
@@ -167,31 +230,19 @@
     if (!orderId) return;
 
     const cardText = cleanText(card);
-    const title = titleFrom(card);
-    const key = orderId + "|" + title;
-    if (seenKeys.has(key)) return;
-    seenKeys.add(key);
-
     const orderUrl = href
       ? (href.startsWith("http") ? href : origin + href)
       : origin + "/gp/css/order-details?orderID=" + orderId;
 
-    // Status drives the stage; pull the ETA from the status text (not the whole card,
-    // which also contains the "Order placed" date).
-    const statusText = statusFrom(card, cardText);
-
-    results.push({
-      orderId: orderId,
-      title: title,
-      statusText: statusText,
-      etaText: etaFrom(statusText),
-      stopsAway: stopsFrom(cardText),
-      deliveryWindow: windowFrom(cardText),
-      orderUrl: orderUrl,
-      imageUrl: imageFrom(card),
-      trackingId: trackingFrom(cardText),
-      carrier: carrierFrom(cardText),
-    });
+    const ships = splitShipments(card);
+    if (ships.length === 0) {
+      // Single shipment (or none): pull the ETA from the status, not the whole card.
+      const statusText = statusFrom(card, cardText);
+      addRow(orderId, orderUrl, cardText, statusText, titleFrom(card), imageFrom(card), isDelayed(statusText));
+    } else {
+      ships.forEach((sh) =>
+        addRow(orderId, orderUrl, cardText, sh.status, sh.title || titleFrom(card), sh.img || imageFrom(card), sh.delayed));
+    }
   });
 
   // The "Next" pagination link, if there is one. On the last page Amazon renders
